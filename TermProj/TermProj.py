@@ -1,5 +1,5 @@
 glob_res = {} #IMPORTANT. Keys MUST map to a list of 2 numbers. have index 0 be the current amount available, and index 1 be the total amount available
-
+#
 def num_val_loop(n): #loop to get valid digit.
     num = 0
     hasRun = False
