@@ -1,5 +1,5 @@
 glob_res = {} #IMPORTANT. Keys MUST map to a list of 2 numbers. have index 0 be the current amount available, and index 1 be the total amount available
-#
+
 def num_val_loop(n): #loop to get valid digit.
     num = 0
     hasRun = False
@@ -39,7 +39,13 @@ def add_item(mode): #add items to the resource system
     else: #alternative mode for adding new resources after intialization. Same as above but without the loop
         re_name = input('Name of new resource? ').strip().title()
         num = num_val_loop(re_name)
+        if re_name in glob_res: #"re-adding" a resource to a dictionary will just update/override it. Alerts the user to allow them to reconsider,
+            selection = input("Warning! This item already exists, adding it again will override the original, including any borrowed amounts. Continue anyway? Input yes/y/no/n").strip().lower()
+            if selection[0] == "n":
+                print("Cancelled.")
+                return #returns to main without adding anything
         glob_res.update({re_name:[num, num]})
+        print("New item added! Check inventory to see it.")
     
 
 
@@ -115,7 +121,6 @@ while(choice != "7"):
             print("Try again. Must be a non-negative integer")
     elif(choice == "5"): #adding a new resource.
         add_item(1) #just add a new mode for adding resources, like earlier with transaction types
-        print("New item added! Check inventory to see it.")
     elif(choice == "6"): #removing an item
         rsel = input("Which resource do you want to delete? ").title()
         if rsel in glob_res: #validate selection
