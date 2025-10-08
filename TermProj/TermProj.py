@@ -167,11 +167,11 @@ def save_ext(trx_num): #save resources and events as an external file
     if ".txt" not in filename: #automatically append .txt to file if not present.
         filename += ".txt"
         with open(filename, "w") as outfile:
-            outfile.write(f"{trx_num} \n")
+            outfile.write(f"{trx_num} \n") #writes the transaction number as the very first line
             for key in glob_res:
-                outfile.write(f"0.{key}.{glob_res[key][0]}.{glob_res[key][1]} \n")
+                outfile.write(f"0.{key}.{glob_res[key][0]}.{glob_res[key][1]} \n") #writes all resources as 0.key.CurrentValue.MaxValue
             for key in glob_even:
-                outfile.write(f"1.{key}.{glob_even[key][0]}.{glob_even[key][1]}.{glob_even[key][2]} \n")
+                outfile.write(f"1.{key}.{glob_even[key][0]}.{glob_even[key][1]}.{glob_even[key][2]} \n") #writes all events as 1.key.StartTime.EndTime.Description
         print(f"File created in current directory as {filename}!")
     
 #get resources
