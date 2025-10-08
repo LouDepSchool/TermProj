@@ -1,5 +1,6 @@
 glob_res = {}#IMPORTANT. Keys MUST map to a list of 2 numbers. have index 0 be the current amount available, and index 1 be the total amount available
 glob_even = {} #EVENTS will consist of a key reprenting the event name, and then a list consisting of a start time, end time, and description.
+trx_num = 1
 
 def bootup(): #Allows the user to CHOOSE to load a pre-existing resource.
     choice = input("Welcome to the Community Resource Management System! Would you like to load a previously saved file? y/yes/n/no: ").lower().strip()
@@ -76,10 +77,99 @@ def add_item(mode): #add items to the resource system
                 return #returns to main without adding anything
         glob_res.update({re_name:[num, num]})
         print("New item added! Check inventory to see it.")
+
+def borrow_item(trx_num): #function for borrowing items
+    member = input("What's your name? ").strip()
+    rsel = input("Which resource do you want to borrow? ").strip().title()
+    qty_str = input("How much? ").strip()
+    if not qty_str.isdigit(): #validate digit
+        print("-> Invalid. Must be a positive integer.")
+    else:
+        qty = int(qty_str)
+        if qty <= 0: #must be a positive integer
+            print("Must be greater than 0. Try Again.")
+        else:
+            #determining WITH the dictionary. if not in dictionary, stop
+            if rsel in glob_res:
+                if qty > glob_res[rsel][0]: #prevents avail resource from going negative
+                    print("Exceeds current amount available. Try again.")
+                else:
+                    glob_res[rsel][0] -= qty
+                    print_trx(rsel, qty, trx_num, member, 0)
+            else:
+                print("Unknown resource. Please only choose a valid resource. Try again")
+
+def return_item(trx_num): #function for returning items
+    member = input("What's your name? ").strip()
+    rsel = input("Which Resource would you like to return?: ").strip().title()
+    qty_str = input("How much? ").strip()
+    if not qty_str.isdigit(): #validates digit
+        print("-> Invalid. Must be a positive integer.")
+    else:
+        qty = int(qty_str)
+        if qty <= 0: #ensures positive int
+            print("Must be greater than 0")
+        else:
+            if rsel in glob_res: #ensures that the returned item is in our resources
+                if(qty + glob_res[rsel][0] <= glob_res[rsel][1]): #makes sure we're not exceeding our current max
+                    glob_res[rsel][0] += qty
+                    print_trx(rsel, qty, trx_num, member, 1) 
+                else:
+                    print("You're returning too much! Try again, make sure you're not giving us some of your stuff...")
+            else:
+                print("Unknown Resource. Try Again.")
+
+def change_tot():#function for changing totals
+    rsel = input("Which Resource are you going to update? ").strip().title()
+    new_str = input("New AVAILABLE count (non-negative integer): ").strip()
+    if new_str.isdigit():
+        new_count = int(new_str)
+        if(new_count>0):
+            if rsel in glob_res: #validates in resources.
+                glob_res[key] = [new_count, new_count] #updates the count to the new counts to be the new totals
+                print(f'Resource Updated. {rsel} now has {new_count} available and total.')
+            else:
+                print("Unknown Resource. Try again")
+        else:
+            print("Try Again. Must be non-negative integer.")
+    else:
+        print("Try again. Must be a non-negative integer")
+
+def delete_item():#function for deleting a resource entirely
+    rsel = input("Which resource do you want to delete? ").title()
+    if rsel in glob_res: #validate selection
+        confirm = input(f"Are you ABSOLUTELY SURE you want to remove {rsel} from your community resources? Confirm with y/yes/n/no ").strip().lower()
+        if confirm[0] == "y": #Double check to make sure the user actually wants to delete the item!!
+            glob_res.pop(rsel)
+            print("Resource deleted. Check inventory to confirm.")
+        else:
+            print("Deletion Cancelled")
+    else:
+        print("Unknown Resource.")
+
+def add_event(trx_num): #function for adding events
+    name = input("What's the name of your event? ").strip().title()
+    startTime = input("What's the start time of your event? ").strip()
+    endTime = input("What's the ending time of your event? ").strip()
+    desc = input("Write a breif description: ")
+    userName = input("What is your name? ").strip()
+    print_trx(name, 0, trx_num, userName, 2)
+    glob_even.update({name:[startTime, endTime, desc]})
+
+
+def save_ext(): #save resources and events as an external file
+    filename = input("What would you like to name the file? ").strip()
+    if ".txt" not in filename: #automatically append .txt to file if not present.
+        filename += ".txt"
+        with open(filename, "w") as outfile:
+            for key in glob_res:
+                outfile.write(f"0.{key}.{glob_res[key][0]}.{glob_res[key][1]} \n")
+            for key in glob_even:
+                outfile.write(f"1.{key}.{glob_even[key][0]}.{glob_even[key][1]}.{glob_even[key][2]}")
+        print(f"File created in current directory as {filename}!")
     
 #get resources
 bootup()
-trx_num = 1
 choices = "1) View Inventory \n" "2) Borrow \n" "3) Return \n" "4) Edit Available Counts \n" "5) Add Resource \n" "6) Remove Resource \n" "7) Add Event \n" "8) View Events \n" "10) Save Resources And Events As External File \n" "11) Quit \n" #list of choices to make printing easier
 choice = ""
 while(choice != "11"):
@@ -92,96 +182,25 @@ while(choice != "11"):
       for key in glob_res:
           print(f"{key}: {glob_res[key][0]} currently available, with {glob_res[key][1]} to start. ")
     elif(choice == "2"): #borrow
-        member = input("What's your name? ").strip()
-        rsel = input("Which resource do you want to borrow? ").strip().title()
-        qty_str = input("How much? ").strip()
-        if not qty_str.isdigit(): #validate digit
-            print("-> Invalid. Must be a positive integer.")
-        else:
-            qty = int(qty_str)
-            if qty <= 0: #must be a positive integer
-                print("Must be greater than 0. Try Again.")
-            else:
-                #determining WITH the dictionary. if not in dictionary, stop
-                if rsel in glob_res:
-                    if qty > glob_res[rsel][0]: #prevents avail resource from going negative
-                        print("Exceeds current amount available. Try again.")
-                    else:
-                        glob_res[rsel][0] -= qty
-                        print_trx(rsel, qty, trx_num, member, 0)
-                        trx_num+=1
-                else:
-                    print("Unknown resource. Please only choose a valid resource. Try agaim")
+        borrow_item(trx_num)
+        trx_num += 1
     elif(choice == "3"): #return
-        member = input("What's your name? ").strip()
-        rsel = input("Which Resource would you like to return?: ").strip().title()
-        qty_str = input("How much? ").strip()
-        if not qty_str.isdigit(): #validates digit
-            print("-> Invalid. Must be a positive integer.")
-        else:
-            qty = int(qty_str)
-            if qty <= 0: #ensures positive int
-                print("Must be greater than 0")
-            else:
-                if rsel in glob_res: #ensures that the returned item is in our resources
-                    if(qty + glob_res[rsel][0] <= glob_res[rsel][1]): #makes sure we're not exceeding our current max
-                        glob_res[rsel][0] += qty
-                        print_trx(rsel, qty, trx_num, member, 1)
-                        trx_num += 1 
-                    else:
-                        print("You're returning too much! Try again, make sure you're not giving us some of your stuff...")
-                else:
-                    print("Unknown Resource. Try Again.")
+        return_item(trx_num)
+        trx_num += 1
     elif(choice == "4"): #change totals
-        rsel = input("Which Resource are you going to update? ").strip().title()
-        new_str = input("New AVAILABLE count (non-negative integer): ").strip()
-        if new_str.isdigit():
-            new_count = int(new_str)
-            if(new_count>0):
-                if rsel in glob_res: #validates in resources.
-                    glob_res[key] = [new_count, new_count] #updates the count to the new counts to be the new totals
-                    print(f'Resource Updated. {rsel} now has {new_count} available and total.')
-                else:
-                    print("Unknown Resource. Try again")
-            else:
-                print("Try Again. Must be non-negative integer.")
-        else:
-            print("Try again. Must be a non-negative integer")
+        change_tot()
     elif(choice == "5"): #adding a new resource.
         add_item(1) #just add a new mode for adding resources, like earlier with transaction types
     elif(choice == "6"): #removing an item
-        rsel = input("Which resource do you want to delete? ").title()
-        if rsel in glob_res: #validate selection
-            confirm = input(f"Are you ABSOLUTELY SURE you want to remove {rsel} from your community resources? Confirm with y/yes/n/no ").strip().lower()
-            if confirm[0] == "y": #Double check to make sure the user actually wants to delete the item!!
-                glob_res.pop(rsel)
-                print("Resource deleted. Check inventory to confirm.")
-            else:
-                print("Deletion Cancelled")
-        else:
-            print("Unknown Resource.")
+        delete_item()
     elif(choice == "7"): #adding an event
-        name = input("What's the name of your event? ").strip().title()
-        startTime = input("What's the start time of your event? ").strip()
-        endTime = input("What's the ending time of your event? ").strip()
-        desc = input("Write a breif description: ")
-        userName = input("What is your name? ").strip()
-        print_trx(name, 0, trx_num, userName, 2)
-        glob_even.update({name:[startTime, endTime, desc]})
-        trx_num+=1
+        add_event(trx_num)
+        trx_num += 1
     elif(choice == "8"): #print all events
         for key in glob_even:
             print(f"Event: {key}. Start time: {glob_even[key][0]}. End time: {glob_even[key][1]}. Description: {glob_even[key][2]}")
     elif(choice == "10"): #save current resources as an external file to be loaded at a later date
-        filename = input("What would you like to name the file? ").strip()
-        if ".txt" not in filename: #automatically append .txt to file if not present.
-            filename += ".txt"
-            with open(filename, "w") as outfile:
-                for key in glob_res:
-                    outfile.write(f"0.{key}.{glob_res[key][0]}.{glob_res[key][1]} \n")
-                for key in glob_even:
-                    outfile.write(f"1.{key}.{glob_even[key][0]}.{glob_even[key][1]}.{glob_even[key][2]}")
-            print(f"File created in current directory as {filename}!")
+        save_ext()
     elif(choice == "11"): #quit
         print("\nExiting CRMS. Goodbye.")
     else: #default
