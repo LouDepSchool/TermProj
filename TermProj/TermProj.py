@@ -1,6 +1,5 @@
 glob_res = {}#IMPORTANT. Keys MUST map to a list of 2 numbers. have index 0 be the current amount available, and index 1 be the total amount available
 glob_even = {} #EVENTS will consist of a key reprenting the event name, and then a list consisting of a start time, end time, and description.
-trx_num = 1
 
 def bootup(): #Allows the user to CHOOSE to load a pre-existing resource.
     choice = input("Welcome to the Community Resource Management System! Would you like to load a previously saved file? y/yes/n/no: ").lower().strip()
@@ -9,6 +8,7 @@ def bootup(): #Allows the user to CHOOSE to load a pre-existing resource.
         choice = input("y/yes/n/no only. ").lower().strip()
     if choice[0] == "n": #no, don't load a pre-existing resource document
         add_item(0)
+        return 1
     else: #yes, load an existing one
         filename = input("What is the file name? Note: file must be in same directory. ").strip()
         if ".txt" not in filename: #append .txt to the end of the filename.
@@ -17,17 +17,23 @@ def bootup(): #Allows the user to CHOOSE to load a pre-existing resource.
             test = open(filename)
             test.close() #open and close the file quickly to test if file is present
             with open(filename, "r") as readFile:
+                i = 0
                 for line in readFile: #when saving a resource preset as "mode.key.currVal.maxVal", so we're going to assume that is the method wewill be reading in
-                    res = line.split(".")
-                    if(res[0] == "0"): #mode "0" represents a resource.
-                        glob_res.update({res[1].title():[int(res[2]),int(res[3])]})
-                    else: #mode "1" represents an event.
-                        glob_even.update({res[1].title():[res[2], res[3], res[4]]})
-
-                    
+                    if i == 0: #only on the first iteration will the transaction number be present
+                        num = int(line)
+                        i += 1 #we only care about i for the first line read, so dont bother updating it elsewise
+                    else:
+                        res = line.split(".")
+                        if(res[0] == "0"): #mode "0" represents a resource.
+                            glob_res.update({res[1].title():[int(res[2]),int(res[3])]})
+                        else: #mode "1" represents an event.
+                            glob_even.update({res[1].title():[res[2], res[3], res[4]]})
+            print("File loaded successfully!")
+            return num           
         except:
-            print("File is either missing or corrupted. Deefaulting to standard, non-load boot.")
+            print("File is either missing or corrupted. Defaulting to standard, non-load boot.")
             add_item(0)
+            return 1
 
 def num_val_loop(n): #loop to get valid digit.
     num = 0
@@ -156,20 +162,20 @@ def add_event(trx_num): #function for adding events
     print_trx(name, 0, trx_num, userName, 2)
     glob_even.update({name:[startTime, endTime, desc]})
 
-
-def save_ext(): #save resources and events as an external file
+def save_ext(trx_num): #save resources and events as an external file
     filename = input("What would you like to name the file? ").strip()
     if ".txt" not in filename: #automatically append .txt to file if not present.
         filename += ".txt"
         with open(filename, "w") as outfile:
+            outfile.write(f"{trx_num} \n")
             for key in glob_res:
                 outfile.write(f"0.{key}.{glob_res[key][0]}.{glob_res[key][1]} \n")
             for key in glob_even:
-                outfile.write(f"1.{key}.{glob_even[key][0]}.{glob_even[key][1]}.{glob_even[key][2]}")
+                outfile.write(f"1.{key}.{glob_even[key][0]}.{glob_even[key][1]}.{glob_even[key][2]} \n")
         print(f"File created in current directory as {filename}!")
     
 #get resources
-bootup()
+trx_num = bootup()
 choices = "1) View Inventory \n" "2) Borrow \n" "3) Return \n" "4) Edit Available Counts \n" "5) Add Resource \n" "6) Remove Resource \n" "7) Add Event \n" "8) View Events \n" "10) Save Resources And Events As External File \n" "11) Quit \n" #list of choices to make printing easier
 choice = ""
 while(choice != "11"):
@@ -180,7 +186,7 @@ while(choice != "11"):
     if(choice == "1"): #see inventory
       print("\n---Inventory---")
       for key in glob_res:
-          print(f"{key}: {glob_res[key][0]} currently available, with {glob_res[key][1]} to start. ")
+          print(f"{key}: {glob_res[key][0]} currently available, with {glob_res[key][1]} max. ")
     elif(choice == "2"): #borrow
         borrow_item(trx_num)
         trx_num += 1
@@ -200,11 +206,9 @@ while(choice != "11"):
         for key in glob_even:
             print(f"Event: {key}. Start time: {glob_even[key][0]}. End time: {glob_even[key][1]}. Description: {glob_even[key][2]}")
     elif(choice == "10"): #save current resources as an external file to be loaded at a later date
-        save_ext()
+        save_ext(trx_num)
     elif(choice == "11"): #quit
         print("\nExiting CRMS. Goodbye.")
     else: #default
         print("Invalid choice.")
-
-
-    
+ 
