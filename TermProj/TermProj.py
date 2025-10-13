@@ -2,6 +2,74 @@ glob_res = {}#IMPORTANT. Keys MUST map to a list of 2 numbers. have index 0 be t
 glob_even = {} #EVENTS will consist of a key reprenting the event name, and then a list consisting of a start time, end time, and description.
 glob_acc = {} #ACCOUNTS. Key = Username, Value = [Password, Type], where type will either be A for admin or S for standard
 
+def print_accs(): #prints all accounts
+    for key in glob_acc:
+        print(f"Account username: {key}")
+        if glob_acc[key][1] == "A": #admin level account
+            print("Account Level: Admin")
+        else: #standard level account
+            print("Account Level: Standard")
+
+def prom_acc(): #promotes a standard account to admin level 
+    acc = input("What account are you looking to promote? ").strip()
+    if acc in glob_acc: #validates if account exists.
+        if glob_acc[acc][1] == "A": #already an admin level account
+            print("Error: Account already admin level!")
+        else:
+            glob_acc[acc][1] = "A" #reassigns account to be admin level
+            print("Account level promoted to Admin")
+    else:
+        print("Error: Account does not exist.")
+
+def dem_acc(n): #demotes an account to standard level
+    acc = input("What account are you looking to demote? ").strip()
+    if acc in glob_acc: #validates in global accounts dictionary
+        if acc != n: #makes sure you aren't trying to demote YOURSELF
+            if glob_acc[acc][1] == "S": #already a standard level account
+                print("Error: Account level already standard.")
+            else:
+                glob_acc[acc][1] = "S"
+                print("Account level demoted to Standard.")
+        else:
+            print("Error: Cannot demote yourself.")
+    else:
+        print("Error: Account does not exist.")
+
+def del_acc(n): #deletes an account
+    acc = input("What account are you looking to delete? ").strip()
+    if acc in glob_acc: #validates account is in the list of accounts
+        if acc != n: #validates account is not your own
+            confirm = input("Are you sure you want to delete this account? This cannot be undone. yes/y/no/n ").strip().lower()
+            if confirm[0] == "y": #double checks if you want to delete the account
+                glob_acc.pop(acc)
+                print("Account deleted.")
+            else:
+                print("Account deletion cancelled.")
+        else:
+            print("Error: Cannot delete own account. ")
+    else:
+        print("Error: Account does not exist")
+
+def accMan(name): #admin level account management system
+    opts = "1) Print Accounts \n" "2) Promote Account \n" "3) Demote Account \n" "4) Delete Account \n" "5) Quit Account Management System \n" 
+    opt = ""
+    while opt != "5":
+        print("\n---Account Management---")
+        print(opts)
+        opt = str(validate_digit(input("Selection: ").strip()))
+        if opt == "1":
+            print_accs()
+        elif opt == "2":
+            prom_acc()
+        elif opt == "3":
+            dem_acc(name)
+        elif opt == "4":
+            del_acc(name)
+        elif opt == "5":
+            print("Leaving Account Management System.")
+        else:
+            print("Invalid Choice.")
+
 def validate_str(in_str): #returns true if there is a special character. Returns false if there is not.
     invalid_chars = ["~", "`", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "-", "_", "=",
                     "+", "{", "}", "[", "]", ";", ":", "'", '"', "<", ",", ".", ">", "?", "/", "\\", "|", " " ] #list of invalid characters
@@ -47,7 +115,7 @@ def make_acc_embed(): #an embedded function for general code reuse
         valid_user = (username not in glob_acc) and (not spec_char)
     while not valid_password:
         password = input("What is your password? No spaces or special characters. ").strip()
-        valid_password = validate_str(password)
+        valid_password = not validate_str(password)
     return username, password
 
 def make_acc(mode): #function for making account
@@ -75,9 +143,9 @@ def acc_lookup(): #function for finding an account. accountsFile will always be 
         test.close()
         with open(accFile, "r") as accounts:
             for line in accounts: #fills in the accounts dictionary
-                if not line.isspace(): #skip empty line. dunno why it's adding extra empty newlines...
+                if not line.isspace(): #Potentially obsolete error handling? Leaving it in just incase.
                     username, password, accType = line.split(".")
-                    glob_acc.update({username:[password, accType]})
+                    glob_acc.update({username:[password, accType.strip()]}) #.strip() necessary to avoid unnwanted newline characters that were causing issues.
         choice = input("Would you like to login to an existing account, or make a new one? Type 1 for Login, and 2 for New Account. ").strip()
         while choice != "1" and choice != "2": #ensures user ONLY logs in or makes a new account
             choice = input("Invalid input. Try again. ").strip()
@@ -262,11 +330,13 @@ def save_ext(trx_num): #save resources and events as an external file
     
 #get resources
 trx_num, name, accType = bootup()
-choices = "1) View Inventory \n" "2) Borrow \n" "3) Return \n" "4) Edit Available Counts \n" "5) Add Resource \n" "6) Remove Resource \n" "7) Add Event \n" "8) View Events \n" "10) Save Resources And Events As External File \n" "11) Quit \n" #list of choices to make printing easier
+choices = "1) View Inventory \n" "2) Borrow \n" "3) Return \n" "4) Edit Available Counts \n" "5) Add Resource \n" "6) Remove Resource \n" "7) Add Event \n" "8) View Events \n" "10) Save Resources And Events As External File \n" "11) Quit \n" "12) Log Out & Log Into a Different Account" #list of choices to make printing easier
 choice = ""
 while(choice != "11"):
     print("\n---Main Menu---")
     print(choices)
+    if(accType == "A"):
+        print("13) Account Management \n") #only shows this option if admin
     choice = input("Selection: ").strip()
     choice = str(validate_digit(choice)) #since the while loop requires a string, we use strings for rest of comparisons as well.
     if(choice == "1"): #see inventory
@@ -284,7 +354,10 @@ while(choice != "11"):
     elif(choice == "5"): #adding a new resource.
         add_item(1) #just add a new mode for adding resources, like earlier with transaction types
     elif(choice == "6"): #removing an item
-        delete_item()
+        if(accType == "A"):
+            delete_item()
+        else:
+            print("Error: Only Admin level accounts have access to this command.")
     elif(choice == "7"): #adding an event
         add_event(trx_num, name)
         trx_num += 1
@@ -296,6 +369,10 @@ while(choice != "11"):
     elif(choice == "11"): #quit
         print("\nExiting CRMS. Goodbye.")
         save_accs()
+    elif(choice == "12"): #allows account changing
+        name, accType = validate_login()
+    elif(choice == "13" and accType == "A"): #this option only shows when logged into an admin account, but just incase.
+        accMan(name)
     else: #default
         print("Invalid choice.")
  
