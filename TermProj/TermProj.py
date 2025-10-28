@@ -153,7 +153,7 @@ def acc_lookup(): #function for finding an account. accountsFile will always be 
             return validate_login()
         else: #user is making a new account
             return make_acc(1)
-    except: #the file for loading accounts is missing or corrupted. All other error handling should be     found???
+    except FileNotFoundError: #the file for loading accounts is missing or corrupted. All other error handling should be     found???
         print(f"{accFile} either missing or corrupted. A new one will be generated. All previous users lost, if any existed. You will become the new Admin.") #obviously a security flaw in reality but let's pretend it's not
         return make_acc(0)
 
@@ -187,7 +187,7 @@ def bootup(): #Allows the user to CHOOSE to load a pre-existing resource.
                             glob_even.update({res[1].title():[res[2], res[3], res[4]]})
             print("File loaded successfully!")
             return num, name, accType
-        except:
+        except FileNotFoundError:
             print("File is either missing or corrupted. Defaulting to standard, non-load boot.")
             add_item(0)
             return 1, name, accType
@@ -327,16 +327,26 @@ def save_ext(trx_num): #save resources and events as an external file
         for key in glob_even:
             outfile.write(f"1.{key}.{glob_even[key][0]}.{glob_even[key][1]}.{glob_even[key][2]} \n") #writes all events as 1.key.StartTime.EndTime.Description
     print(f"File created in current directory as {filename}!")
+
+def summary():
+    print("Summary of current resources and events: ")
+    print("RESOURCES: ")
+    for key in glob_res:
+        print(f"\t {key} currently has {glob_res[key][0]}  available with {glob_res[key][1]} as the max. ")
+    print("EVENTS: ")
+    for key in glob_even:
+        print(f"\t {key} starts at {glob_even[key][0]}, ends at {glob_even[key][1]} and has the following description: ")
+        print(f"\t\t {glob_even[key][2]}")
     
 #get resources
 trx_num, name, accType = bootup()
-choices = "1) View Inventory \n" "2) Borrow \n" "3) Return \n" "4) Edit Available Counts \n" "5) Add Resource \n" "6) Remove Resource \n" "7) Add Event \n" "8) View Events \n" "10) Save Resources And Events As External File \n" "11) Quit \n" "12) Log Out & Log Into a Different Account" #list of choices to make printing easier
+choices = "1) View Inventory \n" "2) Borrow \n" "3) Return \n" "4) Edit Available Counts \n" "5) Add Resource \n" "6) Remove Resource \n" "7) Add Event \n" "8) View Events \n" "10) Save Resources And Events As External File \n" "11) Summary \n" "12) Quit \n" "13) Log Out & Log Into a Different Account" #list of choices to make printing easier
 choice = ""
-while(choice != "11"):
+while(choice != "12"):
     print("\n---Main Menu---")
     print(choices)
     if(accType == "A"):
-        print("13) Account Management \n") #only shows this option if admin
+        print("14) Account Management \n") #only shows this option if admin
     choice = input("Selection: ").strip()
     choice = str(validate_digit(choice)) #since the while loop requires a string, we use strings for rest of comparisons as well.
     if(choice == "1"): #see inventory
@@ -366,12 +376,14 @@ while(choice != "11"):
             print(f"Event: {key}. Start time: {glob_even[key][0]}. End time: {glob_even[key][1]}. Description: {glob_even[key][2]}")
     elif(choice == "10"): #save current resources as an external file to be loaded at a later date
         save_ext(trx_num)
-    elif(choice == "11"): #quit
+    elif choice == "11":
+        summary()
+    elif(choice == "12"): #quit
         print("\nExiting CRMS. Goodbye.")
         save_accs()
-    elif(choice == "12"): #allows account changing
+    elif(choice == "13"): #allows account changing
         name, accType = validate_login()
-    elif(choice == "13" and accType == "A"): #this option only shows when logged into an admin account, but just incase.
+    elif(choice == "14" and accType == "A"): #this option only shows when logged into an admin account, but just incase.
         accMan(name)
     else: #default
         print("Invalid choice.")
