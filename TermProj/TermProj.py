@@ -1,8 +1,8 @@
-glob_even = {} #EVENTS will consist of a key reprenting the event name, and then a list consisting of a start time, end time, and description.
 glob_acc = {} #ACCOUNTS. Key = Username, Value = [Password, Type], where type will either be A for admin or S for standard
-
+#^^^leaving the PRE-OOP account system because it shows off an interesting use of dictionary and list. If ya'll wanna change it to be an object, be my guest
+#I already converted everything dealing with Resources and Events to object/methods. Accounts are effectively mini resources. Do with that what you will
 glob_res= []
-#TODO redo all event and account functions as object functions 
+glob_even = []
 class Resource: #resource object
 
     def __init__(self, name: str, currAvail: int, maxAvail: int):
@@ -44,21 +44,6 @@ class Event: #event object
 
     def getValues(self): #returns name, start time, end time, and description 
         return self.name, self.sT, self.eT, self.desc
-
-class Account: #account object
-    def __init__(self, name: str, pw: str, t: str): #name, password, and account type. Account type should only be S for Standard or A for admin
-        self.name = name
-        self.pw = pw
-        self.t = t
-    #unlike previous data types we wont wanna return all values at once
-    def getName(self):
-        return self.name
-
-    def getPass(self):
-        return self.pw
-
-    def getType(self):
-        return self.t
 
 def print_accs(): #prints all accounts
     for key in glob_acc:
@@ -246,7 +231,7 @@ def bootup(): #Allows the user to CHOOSE to load a pre-existing resource.
                         if(res[0] == "0"): #mode "0" represents a resource.
                             glob_res.append(Resource(res[1].title(), int(res[2].strip()), int(res[3].strip())))
                         else: #mode "1" represents an event.
-                            glob_even.update({res[1].title():[res[2], res[3], res[4]]})
+                            glob_even.append(Event(res[1].title(), res[2], res[3], res[4].strip()))
             print("File loaded successfully!")
             return num, name, accType
         except FileNotFoundError:
@@ -395,9 +380,9 @@ def add_event(trx_num, userName): #function for adding events
     name = input("What's the name of your event? ").strip().title()
     startTime = input("What's the start time of your event? ").strip()
     endTime = input("What's the ending time of your event? ").strip()
-    desc = input("Write a breif description: ")
+    desc = input("Write a breif description: ").strip()
     print_trx(name, 0, trx_num, userName, 2)
-    glob_even.update({name:[startTime, endTime, desc]})
+    glob_even.append(Event(name, startTime, endTime, desc))
 
 def save_ext(trx_num): #save resources and events as an external file
     filename = input("What would you like to name the file? ").strip()
@@ -408,8 +393,9 @@ def save_ext(trx_num): #save resources and events as an external file
         for i in range(len(glob_res)):
             n, c, m = glob_res[i].getValues()
             outfile.write(f"0.{n}.{c}.{m} \n") #writes all resources as 0.key.CurrentValue.MaxValue
-        for key in glob_even:
-            outfile.write(f"1.{key}.{glob_even[key][0]}.{glob_even[key][1]}.{glob_even[key][2]} \n") #writes all events as 1.key.StartTime.EndTime.Description
+        for i in range(len(glob_even)):
+            n, sT, eT, d = glob_even[i].getValues()
+            outfile.write(f"1.{n}.{sT}.{eT}.{d} \n") #writes all events as 1.key.StartTime.EndTime.Description
     print(f"File created in current directory as {filename}!")
 
 def summary():
@@ -419,9 +405,10 @@ def summary():
         n, c, m = glob_res[i].getValues()
         print(f"{n}: {c} currently available, with {m} max")
     print("EVENTS: ")
-    for key in glob_even:
-        print(f"\t {key} starts at {glob_even[key][0]}, ends at {glob_even[key][1]} and has the following description: ")
-        print(f"\t\t {glob_even[key][2]}")
+    for i in range(len(glob_even)):
+        n, sT, eT, d = glob_even[i].getValues()
+        print(f"\t {n} starts at {sT}, ends at {eT} and has the following description: ")
+        print(f"\t\t {d}")
     
 #get resources
 def main():
@@ -459,8 +446,9 @@ def main():
             add_event(trx_num, name)
             trx_num += 1
         elif(choice == "8"): #print all events
-            for key in glob_even:
-                print(f"Event: {key}. Start time: {glob_even[key][0]}. End time: {glob_even[key][1]}. Description: {glob_even[key][2]}")
+            for i in range(len(glob_even)):
+                n, sT, eT, d = glob_even[i].getValues()
+                print(f"Event: {n}. Start time: {sT}. End time: {eT}. Description: {d}")
         elif(choice == "10"): #save current resources as an external file to be loaded at a later date
             save_ext(trx_num)
         elif choice == "11":
