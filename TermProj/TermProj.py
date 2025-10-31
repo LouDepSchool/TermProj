@@ -1,6 +1,64 @@
-glob_res = {}#IMPORTANT. Keys MUST map to a list of 2 numbers. have index 0 be the current amount available, and index 1 be the total amount available
 glob_even = {} #EVENTS will consist of a key reprenting the event name, and then a list consisting of a start time, end time, and description.
 glob_acc = {} #ACCOUNTS. Key = Username, Value = [Password, Type], where type will either be A for admin or S for standard
+
+glob_res= []
+#TODO redo all event and account functions as object functions 
+class Resource: #resource object
+
+    def __init__(self, name: str, currAvail: int, maxAvail: int):
+        self.name = name
+        self.maxAvail = maxAvail
+        self.currAvail = currAvail
+
+    def borrowItem(self, q: int): #borrow item, with quantity q
+        if q > self.currAvail: #if the amount you're trying to borrow is greater than what's available, return False
+            return False
+        else: #otherwise, take that quantity from what's currently available and return true
+            self.currAvail -= q
+            return True
+
+    def returnItem(self, q: int): #return items, with quantity q
+        if self.currAvail + q > self.maxAvail: #if the quantity you want to return is greater than the max available, prevent it and return false
+            return False
+        else: #otherwise add it to what's currently avaialble and return true
+            self.currAvail += q
+            return True
+
+    def getValues(self): #returns name, currAvail, then maxAvail as a touple
+        return self.name, self.currAvail, self.maxAvail
+
+    def updateValue(self, newQ: int): #updates the max and currently available resources to be the new max quantity, newQ
+        self.maxAvail = newQ
+        self.currAvail = newQ
+        pass
+
+    def getName(self): #returns just the name
+        return self.name
+
+class Event: #event object
+    def __init__(self, name: str, sT: str, eT: str, desc: str): #name, start time, end time, description
+        self.name = name
+        self.sT = sT
+        self.eT = eT
+        self.desc = desc
+
+    def getValues(self): #returns name, start time, end time, and description 
+        return self.name, self.sT, self.eT, self.desc
+
+class Account: #account object
+    def __init__(self, name: str, pw: str, t: str): #name, password, and account type. Account type should only be S for Standard or A for admin
+        self.name = name
+        self.pw = pw
+        self.t = t
+    #unlike previous data types we wont wanna return all values at once
+    def getName(self):
+        return self.name
+
+    def getPass(self):
+        return self.pw
+
+    def getType(self):
+        return self.t
 
 def print_accs(): #prints all accounts
     for key in glob_acc:
@@ -160,9 +218,13 @@ def acc_lookup(): #function for finding an account. accountsFile will always be 
 def bootup(): #Allows the user to CHOOSE to load a pre-existing resource.
     name, accType = acc_lookup()
     choice = input("Welcome to the Community Resource Management System! Would you like to load a previously saved file? y/yes/n/no: ").lower().strip()
-    while choice[0] != "y" and choice[0] != "n": #choice validation for bootup sequence. 
+    if len(choice) == 0:
+        choice = "k" #forces invalid on empty input
+    while choice == None or choice[0] != "y" and choice[0] != "n": #choice validation for bootup sequence. 
         print("Invalid option.")
         choice = input("y/yes/n/no only. ").lower().strip()
+        if len(choice) == 0:
+            choice = "k" #forces invalid on empty input
     if choice[0] == "n": #no, don't load a pre-existing resource document
         add_item(0)
         return 1, name, accType
@@ -182,7 +244,7 @@ def bootup(): #Allows the user to CHOOSE to load a pre-existing resource.
                     else:
                         res = line.split(".")
                         if(res[0] == "0"): #mode "0" represents a resource.
-                            glob_res.update({res[1].title():[int(res[2]),int(res[3])]})
+                            glob_res.append(Resource(res[1].title(), int(res[2].strip()), int(res[3].strip())))
                         else: #mode "1" represents an event.
                             glob_even.update({res[1].title():[res[2], res[3], res[4]]})
             print("File loaded successfully!")
@@ -219,6 +281,16 @@ def print_trx(r, qty, trx, mem, mode): #prints a transaction
         print(f"Event {r} Created for {mem}. Check events for more details ")
     print(f"Ticket #: {trx} - {len(mem)}")
 
+def verify_item(n): #verifies the existence of an item in the resource list, then returns true/false as well as its index
+    i = 0 
+    exist = False
+    for j in range(len(glob_res)):
+        i = j
+        if n == glob_res[j].getName(): #runs through the entire list and tries to find the resource
+            exist = True
+            break
+    return i, exist
+
 def add_item(mode): #add items to the resource system
     if mode == 0: #initial resource gathering.
         re_name = ""
@@ -228,69 +300,79 @@ def add_item(mode): #add items to the resource system
             if(re_name == "Done"):
                 continue #skip this iteration
             num = num_val_loop(re_name)
-            glob_res.update({re_name:[num, num]}) #adds new item to the dictionary.
-            i+= 1
+            i, exists = verify_item(re_name) #we dont really need i but since the index is returned first we have to capture it somehow
+            if not exists:
+                glob_res.append(Resource(re_name, num, num))
+                i+= 1
+            else:
+                print("Error, already added that resource.")
     else: #alternative mode for adding new resources after intialization. Same as above but without the loop
         re_name = input('Name of new resource? ').strip().title()
-        num = num_val_loop(re_name)
-        if re_name in glob_res: #"re-adding" a resource to a dictionary will just update/override it. Alerts the user to allow them to reconsider,
-            selection = input("Warning! This item already exists, adding it again will override the original, including any borrowed amounts. Continue anyway? Input yes/y/no/n").strip().lower()
+        num = num_val_loop(re_name) 
+        i, exists = verify_item(re_name)
+        if exists: #"re-adding" a resource to a dictionary will just update/override it. Alerts the user to allow them to reconsider,
+            selection = input("Warning! This item already exists, adding it again will override the original, including any borrowed amounts. Continue anyway? Input yes/y/no/n ").strip().lower()
             if selection[0] == "n":
                 print("Cancelled.")
                 return #returns to main without adding anything
-        glob_res.update({re_name:[num, num]})
+        if exists:
+            glob_res[i].updateValue(num)
+        else:
+            glob_res.append(Resource(re_name, num, num))
         print("New item added! Check inventory to see it.")
 
 def borrow_item(trx_num, name): #function for borrowing items
     rsel = input("Which resource do you want to borrow? ").strip().title()
     qty_str = input("How much? ").strip()
+    i, itemExist = verify_item(rsel)
     if not qty_str.isdigit(): #validate digit
-        print("-> Invalid. Must be a positive integer.")
+         print("Invalid. Must be a positive integer.")
     else:
-        qty = int(qty_str)
-        if qty <= 0: #must be a positive integer
+         qty = int(qty_str)
+         if qty <= 0: #must be a positive integer
             print("Must be greater than 0. Try Again.")
-        else:
-            #determining WITH the dictionary. if not in dictionary, stop
-            if rsel in glob_res:
-                if qty > glob_res[rsel][0]: #prevents avail resource from going negative
-                    print("Exceeds current amount available. Try again.")
-                else:
-                    glob_res[rsel][0] -= qty
+         else:
+            if itemExist:
+                didBorrow = glob_res[i].borrowItem(qty)
+                if didBorrow:
                     print_trx(rsel, qty, trx_num, name, 0)
+                else:
+                    print("Exceeds current amount available. Try again.")
             else:
                 print("Unknown resource. Please only choose a valid resource. Try again")
-
+   
 def return_item(trx_num, name): #function for returning items
-    rsel = input("Which Resource would you like to return?: ").strip().title()
+    rsel = input("Which resource do you want to return? ").strip().title()
     qty_str = input("How much? ").strip()
-    if not qty_str.isdigit(): #validates digit
-        print("-> Invalid. Must be a positive integer.")
+    i, itemExist = verify_item(rsel)
+    if not qty_str.isdigit(): #validate digit
+         print("Invalid. Must be a positive integer.")
     else:
-        qty = int(qty_str)
-        if qty <= 0: #ensures positive int
-            print("Must be greater than 0")
-        else:
-            if rsel in glob_res: #ensures that the returned item is in our resources
-                if(qty + glob_res[rsel][0] <= glob_res[rsel][1]): #makes sure we're not exceeding our current max
-                    glob_res[rsel][0] += qty
-                    print_trx(rsel, qty, trx_num, name, 1) 
+         qty = int(qty_str)
+         if qty <= 0: #must be a positive integer
+            print("Must be greater than 0. Try Again.")
+         else:
+            if itemExist:
+                didBorrow = glob_res[i].returnItem(qty)
+                if didBorrow:
+                    print_trx(rsel, qty, trx_num, name, 1)
                 else:
-                    print("You're returning too much! Try again, make sure you're not giving us some of your stuff...")
+                    print("Exceeds max amount. Try again.")
             else:
-                print("Unknown Resource. Try Again.")
+                print("Unknown resource. Please only choose a valid resource. Try again")
 
 def change_tot():#function for changing totals
     rsel = input("Which Resource are you going to update? ").strip().title()
     new_str = input("New AVAILABLE count (non-negative integer): ").strip()
+    i, itemExist = verify_item(rsel)
     if new_str.isdigit():
         new_count = int(new_str)
-        if(new_count>0):
-            if rsel in glob_res: #validates in resources.
-                glob_res[key] = [new_count, new_count] #updates the count to the new counts to be the new totals
-                print(f'Resource Updated. {rsel} now has {new_count} available and total.')
+        if new_count>0:
+            if itemExist:
+                glob_res[i].updateValue(new_count)
+                print("Counts updated successfully.")
             else:
-                print("Unknown Resource. Try again")
+                print("Try again. Unknown item.")
         else:
             print("Try Again. Must be non-negative integer.")
     else:
@@ -298,10 +380,11 @@ def change_tot():#function for changing totals
 
 def delete_item():#function for deleting a resource entirely
     rsel = input("Which resource do you want to delete? ").title()
-    if rsel in glob_res: #validate selection
+    i, itemExist = verify_item(rsel)
+    if itemExist: #validate selection
         confirm = input(f"Are you ABSOLUTELY SURE you want to remove {rsel} from your community resources? Confirm with y/yes/n/no ").strip().lower()
         if confirm[0] == "y": #Double check to make sure the user actually wants to delete the item!!
-            glob_res.pop(rsel)
+            glob_res.pop(i)
             print("Resource deleted. Check inventory to confirm.")
         else:
             print("Deletion Cancelled")
@@ -322,8 +405,9 @@ def save_ext(trx_num): #save resources and events as an external file
         filename += ".txt"
     with open(filename, "w") as outfile:
         outfile.write(f"{trx_num} \n") #writes the transaction number as the very first line
-        for key in glob_res:
-            outfile.write(f"0.{key}.{glob_res[key][0]}.{glob_res[key][1]} \n") #writes all resources as 0.key.CurrentValue.MaxValue
+        for i in range(len(glob_res)):
+            n, c, m = glob_res[i].getValues()
+            outfile.write(f"0.{n}.{c}.{m} \n") #writes all resources as 0.key.CurrentValue.MaxValue
         for key in glob_even:
             outfile.write(f"1.{key}.{glob_even[key][0]}.{glob_even[key][1]}.{glob_even[key][2]} \n") #writes all events as 1.key.StartTime.EndTime.Description
     print(f"File created in current directory as {filename}!")
@@ -331,60 +415,65 @@ def save_ext(trx_num): #save resources and events as an external file
 def summary():
     print("Summary of current resources and events: ")
     print("RESOURCES: ")
-    for key in glob_res:
-        print(f"\t {key} currently has {glob_res[key][0]}  available with {glob_res[key][1]} as the max. ")
+    for i in range(len(glob_res)):
+        n, c, m = glob_res[i].getValues()
+        print(f"{n}: {c} currently available, with {m} max")
     print("EVENTS: ")
     for key in glob_even:
         print(f"\t {key} starts at {glob_even[key][0]}, ends at {glob_even[key][1]} and has the following description: ")
         print(f"\t\t {glob_even[key][2]}")
     
 #get resources
-trx_num, name, accType = bootup()
-choices = "1) View Inventory \n" "2) Borrow \n" "3) Return \n" "4) Edit Available Counts \n" "5) Add Resource \n" "6) Remove Resource \n" "7) Add Event \n" "8) View Events \n" "10) Save Resources And Events As External File \n" "11) Summary \n" "12) Quit \n" "13) Log Out & Log Into a Different Account" #list of choices to make printing easier
-choice = ""
-while(choice != "12"):
-    print("\n---Main Menu---")
-    print(choices)
-    if(accType == "A"):
-        print("14) Account Management \n") #only shows this option if admin
-    choice = input("Selection: ").strip()
-    choice = str(validate_digit(choice)) #since the while loop requires a string, we use strings for rest of comparisons as well.
-    if(choice == "1"): #see inventory
-      print("\n---Inventory---")
-      for key in glob_res:
-          print(f"{key}: {glob_res[key][0]} currently available, with {glob_res[key][1]} max. ")
-    elif(choice == "2"): #borrow
-        borrow_item(trx_num, name)
-        trx_num += 1
-    elif(choice == "3"): #return
-        return_item(trx_num, name)
-        trx_num += 1
-    elif(choice == "4"): #change totals
-        change_tot()
-    elif(choice == "5"): #adding a new resource.
-        add_item(1) #just add a new mode for adding resources, like earlier with transaction types
-    elif(choice == "6"): #removing an item
+def main():
+    trx_num, name, accType = bootup()
+    choices = "1) View Inventory \n" "2) Borrow \n" "3) Return \n" "4) Edit Available Counts \n" "5) Add Resource \n" "6) Remove Resource \n" "7) Add Event \n" "8) View Events \n" "10) Save Resources And Events As External File \n" "11) Summary \n" "12) Quit \n" "13) Log Out & Log Into a Different Account" #list of choices to make printing easier
+    choice = ""
+    while(choice != "12"):
+        print("\n---Main Menu---")
+        print(choices)
         if(accType == "A"):
-            delete_item()
-        else:
-            print("Error: Only Admin level accounts have access to this command.")
-    elif(choice == "7"): #adding an event
-        add_event(trx_num, name)
-        trx_num += 1
-    elif(choice == "8"): #print all events
-        for key in glob_even:
-            print(f"Event: {key}. Start time: {glob_even[key][0]}. End time: {glob_even[key][1]}. Description: {glob_even[key][2]}")
-    elif(choice == "10"): #save current resources as an external file to be loaded at a later date
-        save_ext(trx_num)
-    elif choice == "11":
-        summary()
-    elif(choice == "12"): #quit
-        print("\nExiting CRMS. Goodbye.")
-        save_accs()
-    elif(choice == "13"): #allows account changing
-        name, accType = validate_login()
-    elif(choice == "14" and accType == "A"): #this option only shows when logged into an admin account, but just incase.
-        accMan(name)
-    else: #default
-        print("Invalid choice.")
+            print("14) Account Management \n") #only shows this option if admin
+        choice = input("Selection: ").strip()
+        choice = str(validate_digit(choice)) #since the while loop requires a string, we use strings for rest of comparisons as well.
+        if(choice == "1"): #see inventory
+            print("\n---Inventory---")
+            for i in range(len(glob_res)):
+                n, c, m = glob_res[i].getValues()
+                print(f"{n}: {c} currently available, with {m} max")
+        elif(choice == "2"): #borrow
+            borrow_item(trx_num, name)
+            trx_num += 1
+        elif(choice == "3"): #return
+            return_item(trx_num, name)
+            trx_num += 1
+        elif(choice == "4"): #change totals
+            change_tot()
+        elif(choice == "5"): #adding a new resource.
+            add_item(1) #just add a new mode for adding resources, like earlier with transaction types
+        elif(choice == "6"): #removing an item
+            if(accType == "A"):
+                delete_item()
+            else:
+                print("Error: Only Admin level accounts have access to this command.")
+        elif(choice == "7"): #adding an event
+            add_event(trx_num, name)
+            trx_num += 1
+        elif(choice == "8"): #print all events
+            for key in glob_even:
+                print(f"Event: {key}. Start time: {glob_even[key][0]}. End time: {glob_even[key][1]}. Description: {glob_even[key][2]}")
+        elif(choice == "10"): #save current resources as an external file to be loaded at a later date
+            save_ext(trx_num)
+        elif choice == "11":
+            summary()
+        elif(choice == "12"): #quit
+            print("\nExiting CRMS. Goodbye.")
+            save_accs()
+        elif(choice == "13"): #allows account changing
+            name, accType = validate_login()
+        elif(choice == "14" and accType == "A"): #this option only shows when logged into an admin account, but just incase.
+            accMan(name)
+        else: #default
+            print("Invalid choice.")
  
+if __name__ == "__main__":
+    main()
