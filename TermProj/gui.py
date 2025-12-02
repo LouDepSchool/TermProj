@@ -26,10 +26,11 @@ def start_system():
 
     clear(root)
 
-    username, accType = crms.acc_lookup()
-
-    trx, _, _ = crms.bootup()
-
+    #username, accType = crms.acc_lookup()
+    root.iconify()
+    trx, username, accType = crms.bootup()
+    root.deiconify()
+    root.lift()
     messagebox.showinfo("Welcome", f"Logged in as {username}")
 
     show_user_menu()
@@ -45,24 +46,76 @@ def show_user_menu():
     tk.Button(root, text="Return Resource", width=30, command=gui_return).pack(pady=5)
     tk.Button(root, text="View Resources", width=30, command=gui_view_resources).pack(pady=5)
     tk.Button(root, text="Event Menu", width=30, command=show_event_menu).pack(pady=5)
-
+    tk.Button(root, text="View Summary of Resources", width=30, command=gui_summary).pack(pady=5)
+    tk.Button(root, text="Save Externally", width = 30, command=gui_save).pack(pady=5)
     if accType == "A":
+        tk.Button(root, text="Admin: Edit Resources", width = 30, command= gui_edit_resource)
         tk.Button(root, text="Admin: Manage Accounts", width=30, command=show_admin_menu).pack(pady=5)
         tk.Button(root, text="Admin: Add New Resource", width=30, command=gui_add_resource).pack(pady=5)
 
+    tk.Button(root, text="Logout", width=30, command=gui_logout).pack(pady=10)
     tk.Button(root, text="Save & Quit", width=30, command=safe_exit).pack(pady=20)
 
+def gui_summary():
+    text = "Resources:\n"
+    for r in crms.glob_res:
+        name, cur, total = r.getValues()
+        text += f"  {name}: {cur}/{total}\n"
+    text+= "Events:\n"
+    for e in crms.glob_even:
+        name, s, eT, desc = e.getValues()
+        text += f"  {name}:\n    {s} - {eT}\n    {desc}\n\n"
+    messagebox.showinfo("Summary", text)
+  
+def gui_save():
+    try:
+        root.iconify()
+        crms.save_ext(trx)
+        root.deiconify()
+        root.lift()
+        messagebox.showinfo("Done", "Saving success.")
+    except:
+        messagebox.showerror("Error", "Something went wrong.")
+
+def gui_edit_resource():
+    try:
+        root.iconify()
+        crms.change_tot()
+        root.deiconify()
+        root.lift()
+        messagebox.showinfo("Done", "Totals editted Successfully.")
+    except:
+        messagebox.showerror("Error", "Something went wrong.")
+
+def gui_logout():
+    global username, accType
+    try:
+        root.iconify()
+        username, accType = crms.validate_login()
+        root.deiconify()
+        root.lift()
+        messagebox.showinfo("Done", "Logout process completed.")
+        show_user_menu()
+        
+    except:
+        messagebox.showerror("Error", "Something went wrong.")
 
 def gui_borrow():
     try:
+        root.iconify()
         crms.borrow_item(trx, username)
+        root.deiconify()
+        root.lift()
         messagebox.showinfo("Done", "Borrow process completed.")
     except:
         messagebox.showerror("Error", "Something went wrong.")
 
 def gui_return():
     try:
+        root.iconify()
         crms.return_item(trx, username)
+        root.deiconify()
+        root.lift()
         messagebox.showinfo("Done", "Return process completed.")
     except:
         messagebox.showerror("Error", "Something went wrong.")
@@ -86,7 +139,10 @@ def show_event_menu():
     tk.Button(root, text="Back", width=30, command=show_user_menu).pack(pady=20)
 
 def gui_add_event():
+    root.iconify()
     crms.add_event(trx, username)
+    root.deiconify()
+    root.lift()
     messagebox.showinfo("Done", "Event added.")
 
 def gui_view_events():
@@ -115,7 +171,10 @@ def gui_print_accounts():
 
 
 def gui_add_resource():
+    root.iconify()
     crms.add_item(1)
+    root.deiconify()
+    root.lift()
     messagebox.showinfo("Done", "Resource added successfully.")
 
 
