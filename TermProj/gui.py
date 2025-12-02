@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog
-import main as crms 
+import TermProj as crms 
 
 def clear(frame):
     for widget in frame.winfo_children():
